@@ -1,0 +1,9 @@
+# clangd and vscode stuff
+.cache/
+.vscode/
+compile_commands.json
+
+# objects, dependencies and the binary
+*.o
+*.d
+kat
