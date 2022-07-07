@@ -32,6 +32,8 @@ typedef struct token_t
   struct token_t *next;
 } token_t;
 
+char *tok2cstr(token_t *token);
+
 token_t *lex(char *buf);
 
 void dump_token_list(token_t *tokens);

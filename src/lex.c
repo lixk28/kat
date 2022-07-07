@@ -70,6 +70,15 @@ static void convert_number(token_t *token)
   }
 }
 
+// return the c-style string of the given token
+char *tok2cstr(token_t *token)
+{
+  char *name = malloc(sizeof(char) * (token->len + 1));
+  memcpy(name, token->begin, sizeof(char) * token->len);
+  name[token->len] = '\0';
+  return name;
+}
+
 token_t * lex(char *buf)
 {
   token_t head = {};
