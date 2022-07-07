@@ -46,10 +46,7 @@ typedef struct symbol_t
   struct symbol_t *next;
 } symbol_t;
 
-typedef struct scope_t
-{
-  hashmap_t symbol_table;
-  struct scope_t *next;
-} scope_t;
+symbol_t *make_var_symbol(token_t *var_tok, type_t *var_type);
+symbol_t *make_fn_symbol(token_t *func_tok, type_t *return_type, type_t *params_type, size_t params_num);
 
 #endif
