@@ -1,7 +1,9 @@
+#include "hashmap.h"
 #include "lex.h"
 #include "parse.h"
 #include "stack.h"
 #include "symbol.h"
+#include "scope.h"
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -83,15 +85,6 @@ static bool consume(token_t **token, const char *str)
   return false;
 }
 
-// return the c-style string of the given token
-static char *tok2cstr(token_t *token)
-{
-  char *name = malloc(sizeof(char) * (token->len + 1));
-  memcpy(name, token->begin, sizeof(char) * token->len);
-  name[token->len] = '\0';
-  return name;
-}
-
 // kat does not support compound data type currently
 // so the type getter is hard coded
 static KAT_TYPE tok2type(token_t *token)
@@ -116,46 +109,47 @@ static KAT_TYPE tok2type(token_t *token)
   exit(1);
 }
 
-static symbol_t *make_var_symbol(token_t *var_tok, type_t *var_type)
-{
-  symbol_t *symbol = calloc(1, sizeof(symbol_t));
-  symbol->is_var = true;
-  symbol->is_func = false;
-  symbol->name = tok2cstr(var_tok);
-  symbol->type = var_type;
-  symbol->token = var_tok;
-  symbol->next = NULL;
-  return symbol;
-}
-
-static symbol_t *make_fn_symbol(token_t *func_tok, type_t *return_type, type_t *params_type)
-{
-  symbol_t *symbol = calloc(1, sizeof(symbol_t));
-  symbol->is_var = false;
-  symbol->is_func = true;
-  symbol->name = tok2cstr(func_tok);
-  symbol->return_type = return_type;
-  symbol->params_type = params_type;
-  symbol->token = func_tok;
-  symbol->next = NULL;
-  return symbol;
-}
-
 static type_t *make_type(token_t *type_tok)
 {
   type_t *type = calloc(1, sizeof(type_t));
-  type->name = tok2cstr(type_tok);
-  type->kind = tok2type(type_tok);
-  type->size = 4;
+  type->name = type_tok == NULL ? "nil" : tok2cstr(type_tok);
+  type->kind = type_tok == NULL ? KAT_NIL : tok2type(type_tok);
+  switch (type->kind) {
+    case KAT_INT: type->size = 4; break;
+    case KAT_CHAR: type->size = 1; break;
+    case KAT_STR: type->size = 4; break;
+    case KAT_BOOL: type->size = 1; break;
+    case KAT_NIL: type->size = 0; break;
+  }
   type->next = NULL;
   return type;
 }
 
-static node_t *make_var_node(token_t *var_tok, token_t *type_tok)
+// make node for new declared variable
+static node_t *make_decl_var_node(token_t *var_tok, token_t *type_tok)
 {
   node_t *var_node = calloc(1, sizeof(node_t));
   var_node->type = ND_VAR;
   var_node->var = make_var_symbol(var_tok, make_type(type_tok));
+  var_node->params = NULL;
+  var_node->body = NULL;
+  var_node->lhs = NULL;
+  var_node->op = NULL;
+  var_node->rhs = NULL;
+  var_node->cond = NULL;
+  var_node->if_stmt = NULL;
+  var_node->else_stmt = NULL;
+  var_node->while_stmt = NULL;
+  var_node->next = NULL;
+  return var_node;
+}
+
+// make node for variable reference
+static node_t *make_ref_var_node(token_t *var_tok)
+{
+  node_t *var_node = calloc(1, sizeof(node_t));
+  var_node->type = ND_VAR;
+  var_node->var = find_symbol_by_tok(var_scope, var_tok);
   var_node->params = NULL;
   var_node->body = NULL;
   var_node->lhs = NULL;
@@ -178,12 +172,14 @@ static node_t *make_node(ND_TYPE node_type)
 
 /* parsing part */
 
+static token_t *find_right_close_paren(token_t *token);
 static node_t *parse_fncall(token_t **token);
 static node_t *parse_expr_list(token_t **token);
+static node_t *parse_op(token_t **token, int arity);
 static node_t *parse_expr(token_t **token, token_t *end_token);
 static node_t *parse_expr_stmt(token_t **token);
 static node_t *parse_decl_stmt(token_t **token);
-static node_t *parse_stmt_block(token_t **token);
+static node_t *parse_stmt_block(token_t **token, bool is_func_body);
 static node_t *parse_if(token_t **token);
 static node_t *parse_while(token_t **token);
 static node_t *parse_func(token_t **token);
@@ -221,21 +217,21 @@ static token_t *find_right_close_paren(token_t *token)
 // expression-list = "(" [expression {"," expression }] ")" ;
 static node_t *parse_expr_list(token_t **token)
 {
-  node_t param_head = { .next = NULL };
-  node_t *curr_param = &param_head;
+  node_t expr_head = { .next = NULL };
+  node_t *curr_expr = &expr_head;
 
   if (expect_str(token, "(")) {
     token_t *right_close_paren = find_right_close_paren(*token);
     advance(token);
-  parse_next_param:
-    curr_param->next = parse_expr(token, right_close_paren);
-    curr_param = curr_param->next;
+  parse_next_expr:
+    curr_expr->next = parse_expr(token, right_close_paren);
+    curr_expr = curr_expr->next;
     if (consume(token, ","))
-      goto parse_next_param;
+      goto parse_next_expr;
     consume(token, ")");
   }
 
-  return param_head.next;
+  return expr_head.next;
 }
 
 // parse function call
@@ -243,9 +239,17 @@ static node_t *parse_expr_list(token_t **token)
 static node_t *parse_fncall(token_t **token)
 {
   if (expect_type(token, TK_ID)) {
-    // TODO:
-    // * lookup the symbol table to see if the function being called exists
-    // * lookup the symbol table to see if the function name is valid (not a variable)
+    symbol_t *var_symbol = find_symbol_by_tok(var_scope, *token);
+    if (var_symbol) {
+      fprintf(stderr, "variable \"%s\" cannot be called as a function at line %ld\n", tok2cstr(*token), (*token)->line);
+      exit(1);
+    }
+
+    symbol_t *func_symbol = find_symbol_by_tok(func_scope, *token);
+    if (!func_symbol) {
+      fprintf(stderr, "used of undeclared function \"%s\" at line %ld\n", tok2cstr(*token), (*token)->line);
+      exit(1);
+    }
 
     advance(token);
 
@@ -254,10 +258,14 @@ static node_t *parse_fncall(token_t **token)
       exit(1);
     }
 
-    // TODO:
-    // * let pointer `fncall_code->func` points to the function in symbol table
     node_t *fncall_node = make_node(ND_FNCALL);
-    // fncall_node->func =
+    fncall_node->func = func_symbol;
+
+    // TODO: check if the params match (types)
+    // // expected param types
+    // type_t *params_type = func_symbol->params_type;
+
+    // parse params, which is a expression list "(" expr {"," expr} ")"
     fncall_node->params = parse_expr_list(token);
     return fncall_node;
   } else {
@@ -353,8 +361,6 @@ static node_t *parse_expr(token_t **token, token_t *end_token)
   stack_t *expr_stack = new_stack(32, sizeof(node_t *));
   stack_t *op_stack = new_stack(32, sizeof(node_t *));
 
-  // TODO:
-  // * type checking, if lhs and rhs have inconsistent types, or the operands' type of op doe not match lhs and rhs
   while (!expect_str(token, ",") && !expect_str(token, "{") && !expect_str(token, ";") && (*token) != end_token) {
     if (expect_str(token, "(")) { // left paren
       node_t *lparen_node = make_node(ND_LPAREN);
@@ -375,6 +381,12 @@ static node_t *parse_expr(token_t **token, token_t *end_token)
         pop(expr_stack, &(expr_node->rhs));
         pop(expr_stack, &(expr_node->lhs));
         pop(op_stack, &(expr_node->op));
+
+        // TODO:
+        // type checking
+        // * if lhs and rhs has consistent types
+        // * if types of operands of op match lhs and rhs
+
         push(expr_stack, &expr_node);
         gettop(op_stack, &top);
       }
@@ -398,6 +410,12 @@ static node_t *parse_expr(token_t **token, token_t *end_token)
         pop(expr_stack, &(expr_node->rhs));
         pop(expr_stack, &(expr_node->lhs));
         pop(op_stack, &(expr_node->op));
+
+        // TODO:
+        // type checking
+        // * if lhs and rhs has consistent types
+        // * if types of operands of op match lhs and rhs
+
         push(expr_stack, &expr_node);
         gettop(op_stack, &top);
       }
@@ -420,10 +438,12 @@ static node_t *parse_expr(token_t **token, token_t *end_token)
         node_t *fncall_node = parse_fncall(token);
         push(expr_stack, &fncall_node);
       } else {  // variable
-        node_t *var_node = make_node(ND_VAR);
-        // TODO:
-        // * lookup symbol table, get the variable symbol, let `var_node->var` points to that symbol
-
+        symbol_t *var_symbol = find_symbol_by_tok(var_scope, *token);
+        if (!var_symbol) {
+          fprintf(stderr, "use of undeclared variable \"%s\" at line %ld\n", tok2cstr(*token), (*token)->line);
+          exit(1);
+        }
+        node_t *var_node = make_ref_var_node(*token);
         push(expr_stack, &var_node);
         advance(token);
       }
@@ -460,15 +480,19 @@ static node_t *parse_expr_stmt(token_t **token)
 {
   if (expect_type(token, TK_ID) && expect_next_str(token, "=")) {
     // TODO:
-    // * lookup the symbol table to see if the variable exists and in current scope
     // * check if the identifier is a left value
-    node_t *var_node = make_node(ND_VAR);
-    // TODO:
-    // * get the symbol from symbol table
-    type_t *var_type = calloc(1, sizeof(type_t));
-    var_type->kind = KAT_NIL;
-    symbol_t *var_sym = make_var_symbol(*token, var_type);
-    var_node->var = var_sym;
+    symbol_t *var_symbol = find_symbol_by_tok(var_scope, *token);
+    symbol_t *func_symbol = find_symbol_by_tok(func_scope, *token);
+    if (!var_symbol) {
+      fprintf(stderr, "use of undeclared variable \"%s\" at line %ld\n", tok2cstr(*token), (*token)->line);
+      exit(1);
+    }
+    if (func_symbol) {
+      fprintf(stderr, "variable has naming conflicts with function \"%s\" defined at line %ld\n", tok2cstr(var_symbol->token), var_symbol->token->line);
+      exit(1);
+    }
+
+    node_t *var_node = make_ref_var_node(*token);
 
     advance(token);
 
@@ -525,13 +549,21 @@ static node_t *parse_decl_stmt(token_t **token)
       exit(1);
     }
 
-    // TODO:
-    // symbol and symbol table stuff
-    // * check redefinition or naming conflicts
-    // * make symbol for the node
-    //   * the symbol type
-    //   * let the token pointer in symbol points to `var_tok`
-    node_t *var_node = make_var_node(var_tok, *token);
+    symbol_t *var_symbol = find_symbol_by_tok(var_scope, var_tok);
+    symbol_t *func_symbol = find_symbol_by_tok(func_scope, var_tok);
+    if (var_symbol) {
+      fprintf(stderr, "redeclaration of \"%s\" at line %ld\n", var_symbol->name, var_tok->line);
+      fprintf(stderr, "variable \"%s\" was first defined at line %ld\n", var_symbol->name, var_symbol->token->line);
+      exit(1);
+    }
+    if (func_symbol) {
+      fprintf(stderr, "redeclaration of \"%s\" at line %ld\n", func_symbol->name, var_tok->line);
+      fprintf(stderr, "function \"%s\" was first defined at line %ld\n", func_symbol->name, func_symbol->token->line);
+      exit(1);
+    }
+
+    node_t *var_node = make_decl_var_node(var_tok, *token);
+    add_symbol(var_scope, var_node->var);
     advance(token);
 
     if (consume(token, "=")) {  // the declared variable is initialized
@@ -564,11 +596,11 @@ static node_t *parse_if(token_t **token)
 {
   if (consume(token, "if")) {
     node_t *if_cond_node = parse_expr(token, NULL);
-    node_t *if_stmt_node = parse_stmt_block(token);
+    node_t *if_stmt_node = parse_stmt_block(token, false);
 
     node_t *else_stmt_node = NULL;
     if (consume(token, "else"))
-      else_stmt_node = parse_stmt_block(token);
+      else_stmt_node = parse_stmt_block(token, false);
 
     node_t *if_node = make_node(ND_IF);
     if_node->cond = if_cond_node;
@@ -588,7 +620,7 @@ static node_t *parse_while(token_t **token)
   if (consume(token, "while")) {
     node_t *while_node = make_node(ND_WHILE);
     node_t *while_cond_node = parse_expr(token, NULL);
-    node_t *while_stmt_node = parse_stmt_block(token);
+    node_t *while_stmt_node = parse_stmt_block(token, false);
     while_node->cond = while_cond_node;
     while_node->while_stmt = while_stmt_node;
     // TODO: while tags
@@ -599,13 +631,14 @@ static node_t *parse_while(token_t **token)
 
 // parse statement block
 // block = "{" {statement} "}" ;
-static node_t *parse_stmt_block(token_t **token)
+static node_t *parse_stmt_block(token_t **token, bool is_func_body)
 {
-  // TODO:
-  // * block scoping
   if (consume(token, "{")) {
     node_t stmt_head = { .next = NULL };
     node_t *curr_stmt = &stmt_head;
+
+    if (!is_func_body)
+      enter_scope();
 
     while (!consume(token, "}")) {
       if (expect_str(token, "let")) {
@@ -631,6 +664,9 @@ static node_t *parse_stmt_block(token_t **token)
       curr_stmt->next = parse_expr_stmt(token);
       curr_stmt = curr_stmt->next;
     }
+
+    leave_scope();
+
     curr_stmt->next = NULL;
     return stmt_head.next;
   } else {
@@ -655,6 +691,8 @@ static node_t *parse_func(token_t **token)
       fprintf(stderr, "expected function name at line %ld\n", (*token)->line);
       exit(1);
     }
+
+    enter_scope();
 
     // parse parameter list
     size_t params_num = 0;
@@ -683,7 +721,7 @@ static node_t *parse_func(token_t **token)
             exit(1);
           }
 
-          if (expect_type(token, TK_KW)) {
+          if (expect_type(token, TK_KW) || expect_type(token, TK_ID)) {
             type_tok = *token;
             advance(token);
           } else {
@@ -691,11 +729,25 @@ static node_t *parse_func(token_t **token)
             exit(1);
           }
 
+          symbol_t *var_symbol = find_symbol_by_tok(var_scope, var_tok);
+          if (var_symbol) {
+            fprintf(stderr, "redeclaration of parameter \"%s\" at line %ld\n", var_symbol->name, var_tok->line);
+            exit(1);
+          }
+
           params_num++;
+
           curr_type->next = make_type(type_tok);
           curr_type = curr_type->next;
-          curr_param->next = make_var_node(var_tok, type_tok);
+
+          if (!is_valid_type(curr_type->name)) {
+            fprintf(stderr, "invalid type for parameter \"%s\" at line %ld", tok2cstr(var_tok), var_tok->line);
+            exit(1);
+          }
+
+          curr_param->next = make_decl_var_node(var_tok, type_tok);
           curr_param = curr_param->next;
+          add_symbol(var_scope, curr_param->var);
 
           if (consume(token, ")")) {
             break;
@@ -707,12 +759,6 @@ static node_t *parse_func(token_t **token)
           }
         }
       }
-      // TODO:
-      // check if the parameters are legal
-      // * if there is renaming problem with the parameters' names
-      // * if the parameter's type is actually a valid type (we just presumed TK_KW is legal)
-
-      // TODO: make a list of symbols for the function parameters
     } else {
       fprintf(stderr, "expected left paren \"(\" at line %ld\n", (*token)->len);
       exit(1);
@@ -722,22 +768,19 @@ static node_t *parse_func(token_t **token)
     type_t *return_type = NULL;
     if (consume(token, "=>")) {
       return_type = make_type(*token);
-      (*token) = (*token)->next;
+      advance(token);
+    } else {
+      return_type = make_type(NULL);
     }
 
-    // TODO: check redefinition and naming conflicts
+    // make a symbol of function definition and add it to symbol table
+    symbol_t *func = make_fn_symbol(func_tok, return_type, types_head.next, params_num);
+    add_symbol(func_scope, func);
 
-    // TODO: function scoping
+    // parse function body
+    // do not enter new scope
+    node_t *func_body = parse_stmt_block(token, true);
 
-    // TODO: add function definition to symbol table
-
-    // TODO: add function parameters to symbol table
-
-    symbol_t *func = make_fn_symbol(func_tok, return_type, types_head.next);
-
-    node_t *func_body = parse_stmt_block(token);
-
-    // TODO: make function node with function name, node for parameter list, node for function body
     node_t *func_node = make_node(ND_FUNC);
     func_node->func = func;
     func_node->params = params_head.next;
@@ -753,6 +796,8 @@ node_t *parse(token_t *token_list)
 {
   node_t *tree = make_node(ND_PROG);
   token_t *token = token_list;
+
+  func_scope->symbol_table = new_hashmap(128);
 
   node_t func_head = { .next = NULL };
   node_t *curr_func = &func_head;
