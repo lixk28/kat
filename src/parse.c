@@ -795,15 +795,21 @@ static node_t *parse_func(token_t **token)
     }
 
     // make a symbol of function definition and add it to symbol table
-    symbol_t *func = make_fn_symbol(func_tok, return_type, types_head.next, params_num);
-    add_symbol(func_scope, func);
+    symbol_t *func_symbol = find_symbol_by_tok(func_scope, func_tok);
+    if (func_symbol) {
+      fprintf(stderr, "redeclaration of function \"%s\" at line %ld\n", func_symbol->name, func_tok->line);
+      fprintf(stderr, "function \"%s\" was first defined at line %ld\n", func_symbol->name, func_symbol->token->line);
+      exit(1);
+    }
+    func_symbol = make_fn_symbol(func_tok, return_type, types_head.next, params_num);
+    add_symbol(func_scope, func_symbol);
 
     // parse function body
     // do not enter new scope
     node_t *func_body = parse_stmt_block(token, true);
 
     node_t *func_node = make_node(ND_FUNC);
-    func_node->func = func;
+    func_node->func = func_symbol;
     func_node->params = params_head.next;
     func_node->body = func_body;
     return func_node;
