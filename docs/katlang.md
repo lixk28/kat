@@ -16,11 +16,9 @@ underscore = "_" ;
 
 expression
 ```
-expression = ["+" | "-"] term {("+" | "-") term} ;
-term = factor {("*" | "/") factor} ;
-factor = number | "(" expression ")" | identifier | function-call ;
-number = ["+" | "-"] {digit}- ["." {digit}-] ;
-function-call = identifier "(" [identifier {"," identifier }] ")" ;
+expression = primary {operator primary} ;
+operator = "+" | "-" | "*" | "/" | "&&" | "||" | ">" | "<" | ">=" | "<=" | "==" | "!=" ;
+primary = ["+" | "-"] ("(" expression ")" | number | identifier | function-call) ;
 ```
 
 function
@@ -37,13 +35,12 @@ type = "char" | "int" | "str" | "bool" ;
 ```
 
 statement
-- There are 2 kinds of statements in kat
-  - Regular statements
-    - Declaration statements
-      - Use `let` to declare variables
-      - The declared variable may or may not be initialized
-    - Expression statements
-      - The statement is an expression
+- There are 3 kinds of statements in kat
+  - Declaration statements
+    - Use `let` to declare variables
+    - The declared variable may or may not be initialized
+  - Expression statements
+    - The statement is an expression
   - Control statements
     - `if-elif-else` statment
       - `elif` statement can be omitted or repeated
@@ -55,23 +52,19 @@ statement
 ```
 statement = [regular-statement | control-statement]
 
-regular-statement =
-[ "let" identifier ":" type ["=" expression] ";"  /* declaration statement */
-| [identifier "="] expression ";"                 /* expression statement */
-] ;
+declaration-statement = "let" identifier ":" type ["=" expression] ";"
+
+expression statement = [identifier "="] expression ";"
 
 control-statment =
-[ "if" condition block      /* if-elif-else statement */
+[ "if" "(" expression ")" block      (* if-elif-else statement *)
   {"elif" block}
   ["else" block]
-| "while" condition block   /* while statement */
-| "break" ";"               /* break statment */
-| "continue" ";"            /* continue statement */
-| "return" expression ";"   /* return statment */
+| "while" "(" expression ")" block   (* while statement *)
+| "break" ";"                        (* break statement *)
+| "continue" ";"                     (* continue statement *)
+| "return" expression ";"            (* return statement *)
 ] ;
-
-condition = "(" expression {relational-operator expression}- ")" ;
-relational-operator = "&&" | "||" | ">" | "<" | ">=" | "<=" | "==" | "!=" ;
 ```
 
 program
