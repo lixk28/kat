@@ -248,7 +248,7 @@ static node_t *parse_fncall(token_t **token)
 
     symbol_t *func_symbol = find_symbol_by_tok(func_scope, *token);
     if (!func_symbol) {
-      fprintf(stderr, "used of undeclared function \"%s\" at line %ld\n", tok2cstr(*token), (*token)->line);
+      fprintf(stderr, "use of undeclared function \"%s\" at line %ld\n", tok2cstr(*token), (*token)->line);
       exit(1);
     }
 
@@ -489,7 +489,7 @@ static node_t *parse_expr_stmt(token_t **token)
       exit(1);
     }
     if (func_symbol) {
-      fprintf(stderr, "variable has naming conflicts with function \"%s\" defined at line %ld\n", tok2cstr(var_symbol->token), var_symbol->token->line);
+      fprintf(stderr, "function \"%s\" cannot be used as a variable at line %ld\n", tok2cstr(var_symbol->token), var_symbol->token->line);
       exit(1);
     }
 
@@ -558,7 +558,7 @@ static node_t *parse_decl_stmt(token_t **token)
       exit(1);
     }
     if (func_symbol) {
-      fprintf(stderr, "redeclaration of \"%s\" at line %ld\n", func_symbol->name, var_tok->line);
+      fprintf(stderr, "\"%s\" is a function and cannot be declared as a variable at line %ld\n", func_symbol->name, var_tok->line);
       fprintf(stderr, "function \"%s\" was first defined at line %ld\n", func_symbol->name, func_symbol->token->line);
       exit(1);
     }
@@ -775,7 +775,7 @@ static node_t *parse_func(token_t **token)
           } else if (consume(token, ",")) {
             continue;
           } else {
-            fprintf(stderr, "expected right paren \")\" at the end of parameter list for function %s at line %ld", tok2cstr(func_tok), (*token)->line);
+            fprintf(stderr, "expected right paren \")\" at the end of parameter list for function %s at line %ld\n", tok2cstr(func_tok), (*token)->line);
             exit(1);
           }
         }
