@@ -116,9 +116,9 @@ static type_t *make_type(token_t *type_tok)
   type->kind = type_tok == NULL ? KAT_NIL : tok2type(type_tok);
   switch (type->kind) {
     case KAT_INT: type->size = 4; break;
-    case KAT_CHAR: type->size = 1; break;
+    case KAT_CHAR: type->size = 4; break;
     case KAT_STR: type->size = 4; break;
-    case KAT_BOOL: type->size = 1; break;
+    case KAT_BOOL: type->size = 4; break;
     case KAT_NIL: type->size = 0; break;
   }
   type->next = NULL;
