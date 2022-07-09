@@ -1,0 +1,4 @@
+func main(argc: int, argv: str) => int {
+  let x: int = 1;
+  let x: int = 2;
+}

@@ -1,0 +1,141 @@
+token list dump:
+{<keyword>: func at line 1}
+{<identifier>: add at line 1}
+{<punctuator>: ( at line 1}
+{<identifier>: a at line 1}
+{<punctuator>: : at line 1}
+{<keyword>: int at line 1}
+{<punctuator>: , at line 1}
+{<identifier>: b at line 1}
+{<punctuator>: : at line 1}
+{<keyword>: int at line 1}
+{<punctuator>: ) at line 1}
+{<punctuator>: => at line 1}
+{<keyword>: int at line 1}
+{<punctuator>: { at line 1}
+{<keyword>: return at line 2}
+{<identifier>: a at line 2}
+{<punctuator>: + at line 2}
+{<identifier>: b at line 2}
+{<punctuator>: ; at line 2}
+{<punctuator>: } at line 3}
+{<keyword>: func at line 5}
+{<identifier>: main at line 5}
+{<punctuator>: ( at line 5}
+{<identifier>: argc at line 5}
+{<punctuator>: : at line 5}
+{<keyword>: int at line 5}
+{<punctuator>: , at line 5}
+{<identifier>: argv at line 5}
+{<punctuator>: : at line 5}
+{<keyword>: str at line 5}
+{<punctuator>: ) at line 5}
+{<punctuator>: => at line 5}
+{<keyword>: int at line 5}
+{<punctuator>: { at line 5}
+{<keyword>: let at line 6}
+{<identifier>: x at line 6}
+{<punctuator>: : at line 6}
+{<keyword>: int at line 6}
+{<punctuator>: = at line 6}
+{<punctuator>: ( at line 6}
+{<number>: 1 at line 6, ival = 1, fval = 0.000000}
+{<punctuator>: + at line 6}
+{<number>: 2 at line 6, ival = 2, fval = 0.000000}
+{<punctuator>: ) at line 6}
+{<punctuator>: * at line 6}
+{<number>: 3 at line 6, ival = 3, fval = 0.000000}
+{<punctuator>: ; at line 6}
+{<keyword>: let at line 7}
+{<identifier>: y at line 7}
+{<punctuator>: : at line 7}
+{<keyword>: int at line 7}
+{<punctuator>: = at line 7}
+{<number>: 4 at line 7, ival = 4, fval = 0.000000}
+{<punctuator>: * at line 7}
+{<punctuator>: ( at line 7}
+{<number>: 5 at line 7, ival = 5, fval = 0.000000}
+{<punctuator>: - at line 7}
+{<number>: 6 at line 7, ival = 6, fval = 0.000000}
+{<punctuator>: ) at line 7}
+{<punctuator>: ; at line 7}
+{<keyword>: let at line 8}
+{<identifier>: res at line 8}
+{<punctuator>: : at line 8}
+{<keyword>: int at line 8}
+{<punctuator>: = at line 8}
+{<identifier>: add at line 8}
+{<punctuator>: ( at line 8}
+{<identifier>: x at line 8}
+{<punctuator>: , at line 8}
+{<identifier>: y at line 8}
+{<punctuator>: ) at line 8}
+{<punctuator>: + at line 8}
+{<number>: 10 at line 8, ival = 10, fval = 0.000000}
+{<punctuator>: ; at line 8}
+{<keyword>: let at line 10}
+{<identifier>: z at line 10}
+{<punctuator>: : at line 10}
+{<keyword>: bool at line 10}
+{<punctuator>: = at line 10}
+{<punctuator>: ( at line 10}
+{<identifier>: x at line 10}
+{<punctuator>: == at line 10}
+{<number>: 9 at line 10, ival = 9, fval = 0.000000}
+{<punctuator>: ) at line 10}
+{<punctuator>: ; at line 10}
+{<keyword>: let at line 11}
+{<identifier>: c at line 11}
+{<punctuator>: : at line 11}
+{<keyword>: char at line 11}
+{<punctuator>: ; at line 11}
+{<keyword>: if at line 12}
+{<punctuator>: ( at line 12}
+{<identifier>: z at line 12}
+{<punctuator>: ) at line 12}
+{<punctuator>: { at line 12}
+{<identifier>: c at line 13}
+{<punctuator>: = at line 13}
+{<character>: 'Y' at line 13, cval = Y}
+{<punctuator>: ; at line 13}
+{<punctuator>: } at line 14}
+{<keyword>: else at line 14}
+{<punctuator>: { at line 14}
+{<identifier>: c at line 15}
+{<punctuator>: = at line 15}
+{<character>: 'N' at line 15, cval = N}
+{<punctuator>: ; at line 15}
+{<punctuator>: } at line 16}
+{<keyword>: let at line 18}
+{<identifier>: i at line 18}
+{<punctuator>: : at line 18}
+{<keyword>: int at line 18}
+{<punctuator>: = at line 18}
+{<number>: 0 at line 18, ival = 0, fval = 0.000000}
+{<punctuator>: ; at line 18}
+{<keyword>: let at line 19}
+{<identifier>: sum at line 19}
+{<punctuator>: : at line 19}
+{<keyword>: int at line 19}
+{<punctuator>: = at line 19}
+{<number>: 0 at line 19, ival = 0, fval = 0.000000}
+{<punctuator>: ; at line 19}
+{<keyword>: while at line 20}
+{<punctuator>: ( at line 20}
+{<identifier>: i at line 20}
+{<punctuator>: <= at line 20}
+{<number>: 10 at line 20, ival = 10, fval = 0.000000}
+{<punctuator>: ) at line 20}
+{<punctuator>: { at line 20}
+{<identifier>: sum at line 21}
+{<punctuator>: = at line 21}
+{<identifier>: sum at line 21}
+{<punctuator>: + at line 21}
+{<identifier>: i at line 21}
+{<punctuator>: ; at line 21}
+{<punctuator>: } at line 22}
+{<keyword>: return at line 24}
+{<number>: 0 at line 24, ival = 0, fval = 0.000000}
+{<punctuator>: ; at line 24}
+{<punctuator>: } at line 25}
+{<eof>}

@@ -1,0 +1,8 @@
+func x(y: int) => int {
+  return y;
+}
+
+func main(argc: int, argv: str) => int {
+  let x: int = 1;
+  return 0;
+}

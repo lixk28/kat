@@ -1,24 +1,8 @@
-func add(x: int, y: int) => int {
-  return x + y;
-}
+func print(a: int) {}
 
-func main() {
-  char c = 'c';
-  str s = "hello, kat";
-  print(s);
-
-  int res = add(1, 2);
-  if (res == 3) {
-    meow("YES");
-  } else {
-    meow("NO");
-  }
-
-  int i = 0, sum = 0;
-  while (i <= 10) {
-    sum = sum + i;
-    i = i + 1;
-  }
-
-  return 0;
+func main(argc: int, argv: str) => int {
+  let a: int = (1 + 2);
+  let b: int = (3 - 4) * 5;
+  let c: int = a * b;
+  print(c);
 }

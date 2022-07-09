@@ -1,0 +1,83 @@
+Program:
+    Function: add (a: int, b: int) => int
+    FuncBody:
+        ReturnStmt:
+            Expr:
+                Variable: a int
+                Add: +
+                Variable: b int
+    Function: main (argc: int, argv: str) => int
+    FuncBody:
+        DeclStmt (initialized):
+            Variable: x int
+            Assign: =
+            Expr:
+                Expr:
+                    Num: 1
+                    Add: +
+                    Num: 2
+                Multiply: *
+                Num: 3
+        DeclStmt (initialized):
+            Variable: y int
+            Assign: =
+            Expr:
+                Num: 4
+                Multiply: *
+                Expr:
+                    Num: 5
+                    Subtract: -
+                    Num: 6
+        DeclStmt (initialized):
+            Variable: res int
+            Assign: =
+            Expr:
+                FunCall: add
+                    param1:
+                        Variable: x int
+                    param2:
+                        Variable: y int
+                Add: +
+                Num: 10
+        DeclStmt (uninitialized):
+            Variable: flag int
+        IfElseStmt:
+            Condition:
+                Expr:
+                    Variable: x int
+                    GreaterThanOrEqualTo: >=
+                    Num: 9
+            IfBlock:
+                ExprStmt:
+                    Variable: flag int
+                    Assign: =
+                    Num: 1
+            ElseBlock:
+                ExprStmt:
+                    Variable: flag int
+                    Assign: =
+                    Num: 0
+        DeclStmt (initialized):
+            Variable: i int
+            Assign: =
+            Num: 0
+        DeclStmt (initialized):
+            Variable: sum int
+            Assign: =
+            Num: 0
+        WhileStmt:
+            Condition:
+                Expr:
+                    Variable: i int
+                    LessThanOrEqualTo: <=
+                    Num: 10
+            WhileBlock:
+                ExprStmt:
+                    Variable: sum int
+                    Assign: =
+                    Expr:
+                        Variable: sum int
+                        Add: +
+                        Variable: i int
+        ReturnStmt:
+            Num: 0
