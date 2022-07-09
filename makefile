@@ -5,13 +5,13 @@ SOURCES  := $(wildcard ./src/*.c)
 OBJECTS  := $(patsubst ./src/%.c,./src/%.o,$(SOURCES))
 DEPENDS  := $(patsubst ./src/%.c,./src/%.d,$(SOURCES))
 
-CC       := clang
-CFLAGS   := -Wall -Wextra -std=c11
+CC       := gcc
+CFLAGS   := -std=c11
 LDFLAGS  :=
-BUILD		 ?=
+BUILD    ?=
 
 ifeq ($(BUILD), DEBUG)
-	CFLAGS += -g -DDEBUG
+	CFLAGS += -g -DDEBUG -Wall -Wextra
 endif
 
 TARGET := kat
