@@ -59,9 +59,9 @@ void enter_scope()
 void leave_scope()
 {
   // each time leave a scope, dump the symbol table
-  #ifdef DEBUG
-    dump_symbol_table();
-  #endif
+  // #ifdef DEBUG
+  //   dump_symbol_table();
+  // #endif
   var_scope = var_scope->next;
 }
 
