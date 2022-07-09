@@ -182,6 +182,7 @@ static node_t *parse_decl_stmt(token_t **token);
 static node_t *parse_stmt_block(token_t **token, bool is_func_body);
 static node_t *parse_if(token_t **token);
 static node_t *parse_while(token_t **token);
+static node_t *parse_return(token_t **token);
 static node_t *parse_func(token_t **token);
 
 // find the matching right paren
@@ -629,6 +630,21 @@ static node_t *parse_while(token_t **token)
   return NULL;
 }
 
+static node_t *parse_return(token_t **token)
+{
+  if (consume(token, "return")) {
+    node_t *return_node = make_node(ND_RETURN);
+    return_node->rhs = parse_expr(token, NULL);
+
+    if (!consume(token, ";")) {
+      fprintf(stderr, "expected ending \";\" for return statement at line %ld\n", (*token)->line);
+      exit(1);
+    }
+
+    return return_node;
+  }
+}
+
 // parse statement block
 // block = "{" {statement} "}" ;
 static node_t *parse_stmt_block(token_t **token, bool is_func_body)
@@ -660,6 +676,11 @@ static node_t *parse_stmt_block(token_t **token, bool is_func_body)
       }
 
       // TODO: parse break/continue/return statement
+      if (expect_str(token, "return")) {
+        curr_stmt->next = parse_return(token);
+        curr_stmt = curr_stmt->next;
+        continue;
+      }
 
       curr_stmt->next = parse_expr_stmt(token);
       curr_stmt = curr_stmt->next;
@@ -991,6 +1012,16 @@ static void dump_while_stmt(node_t *node, int depth)
   dump_block(node->while_stmt, depth + 2);
 }
 
+// dump return statement
+static void dump_return_stmt(node_t *node, int depth)
+{
+  dump(depth, "ReturnStmt:\n");
+  if (node->rhs->type == ND_EXPR)
+    dump_expr(node->rhs, depth + 1);
+  else if (node->rhs->type == ND_NUM)
+    dump_num(node->rhs, depth + 1);
+}
+
 // dump block of statements
 static void dump_block(node_t *node, int depth)
 {
@@ -1009,6 +1040,9 @@ static void dump_block(node_t *node, int depth)
         break;
       case ND_WHILE:
         dump_while_stmt(node, depth);
+        break;
+      case ND_RETURN:
+        dump_return_stmt(node, depth);
         break;
       default:
         dump(depth, "uh oh, internal dumping error in %s at line %d\n", __FILE__, __LINE__);

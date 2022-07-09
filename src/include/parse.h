@@ -18,6 +18,7 @@ typedef enum ND_TYPE
   ND_COND,      // condition
   ND_IF,        // if statement
   ND_WHILE,     // while statement
+  ND_RETURN,    // return statement
   ND_NUM,       // number
   ND_LPAREN,    // "(" (used for opp, but will not appear in ast)
   ND_RPAREN,    // ")" (used for opp, but will not appear in ast)
